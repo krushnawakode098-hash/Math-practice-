@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SSC Calculation Booster V2</title>
+    <style>
+        /* Mobile-Optimized Variables & Reset */
+        :root {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --primary: #3b82f6;
+            --primary-light: #eff6ff;
+            --success: #22c55e;
+            --success-light: #f0fdf4;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --border: #cbd5e1;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-dark); -webkit-tap-highlight-color: transparent; }
+        .hidden { display: none !important; }
+        
+        /* Layout */
+        #app { display: flex; flex-direction: column; height: 100vh; width: 100vw; overflow: hidden; }
+        header { background: var(--primary); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; }
+        .logo-container { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+        .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 15px; }
+        .screen { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; }
+        
+        /* Home & Selection Screens */
+        .title { font-size: 24px; font-weight: 800; margin-bottom: 20px; text-align: center; }
+        .menu-grid { display: flex; flex-direction: column; gap: 15px; }
+        .menu-btn { background: var(--bg-card); border: 2px solid var(--border); padding: 20px; font-size: 18px; font-weight: 700; border-radius: 12px; color: var(--text-dark); text-align: left; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.1s; }
+        .menu-btn:active { transform: scale(0.98); border-color: var(--primary); }
+        .menu-btn span.icon { font-size: 24px; }
+        
+        /* Match the Pair UI */
+        .match-header { text-align: center; margin-bottom: 20px; }
+        .match-progress { font-size: 14px; color: var(--text-muted); margin-top: 5px; font-weight: 600; }
+        .match-container { display: flex; gap: 15px; flex: 1; }
+        .match-column { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .match-item { background: var(--bg-card); border: 2px solid var(--border); padding: 16px 10px; font-size: 20px; font-weight: 700; border-radius: 10px; text-align: center; transition: all 0.2s ease; user-select: none; }
+        
+        /* Match States */
+        .match-item.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); transform: scale(1.02); }
+        .match-item.matched { border-color: var(--success); background: var(--success); color: white; opacity: 0.3; pointer-events: none; }
+        .match-item.wrong { border-color: var(--danger); background: var(--danger-light); color: var(--danger); animation: shake 0.3s; }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        /* Success Overlay */
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
+        .overlay h2 { font-size: 32px; color: var(--success); margin-bottom: 15px; }
+        .overlay button { background: var(--primary); color: white; border: none; padding: 15px 30px; font-size: 18px; font-weight: 700; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- Header with Custom App Logo -->
+    <header>
+        <div class="logo-container">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                <line x1="8" y1="6" x2="16" y2="6"></line>
+                <line x1="16" y1="14" x2="16" y2="18"></line>
+                <line x1="16" y1="10" x2="16" y2="10"></line>
+                <line x1="8" y1="10" x2="8" y2="10"></line>
+                <line x1="8" y1="14" x2="8" y2="14"></line>
+                <line x1="8" y1="18" x2="8" y2="18"></line>
+                <line x1="12" y1="10" x2="12" y2="10"></line>
+                <line x1="12" y1="14" x2="12" y2="14"></line>
+                <line x1="12" y1="18" x2="12" y2="18"></line>
+            </svg>
+            Calculation Booster
+        </div>
+        <button id="back-btn" class="back-btn hidden" onclick="navigateBack()">← Back</button>
+    </header>
+
+    <!-- 1. Home Screen (Categories) -->
+    <div id="screen-home" class="screen">
+        <h1 class="title">Match the Pair</h1>
+        <div class="menu-grid" id="category-menu">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- 2. Sub-menu Screen (Ranges) -->
+    <div id="screen-range" class="screen hidden">
+        <h1 class="title" id="range-title">Select Range</h1>
+        <div class="menu-grid" id="range-menu">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- 3. Match Interface -->
+    <div id="screen-match" class="screen hidden">
+        <div class="match-header">
+            <h2 id="match-title" class="title" style="margin-bottom: 5px;">Table of 14</h2>
+            <div class="match-progress" id="match-progress">Set 1 of 10</div>
+        </div>
+        <div class="match-container">
+            <div class="match-column" id="col-left"></div>
+            <div class="match-column" id="col-right"></div>
+        </div>
+    </div>
+    
+    <!-- Success Overlay -->
+    <div id="success-overlay" class="overlay hidden">
+        <h2>Session Complete!</h2>
+        <p style="margin-bottom: 25px; font-weight: 600; color: var(--text-muted);">All matches cleared flawlessly.</p>
+        <button onclick="goHome()">Return to Menu</button>
+    </div>
+</div>
+
+<script>
+    // --- 1. DATA GENERATORS ---
+    // Tables: Completes 1 to 10 for a given number
+    const getTablesQueue = (start, end) => {
+        let queue = [];
+        for (let i = start; i <= end; i++) {
+            let set = [];
+            for (let j = 1; j <= 10; j++) set.push({ q: `${i} × ${j}`, a: i * j });
+            queue.push({ title: `Table of ${i}`, data: set });
+        }
+        return queue;
+    };
+
+    // Squares: Generates an array of squares within bounds
+    const getSquaresQueue = (start, end) => {
+        let set = [];
+        for (let i = start; i <= end; i++) set.push({ q: `${i}²`, a: i * i });
+        return [{ title: `Squares ${start}-${end}`, data: set }];
+    };
+
+    // Cubes: Handles normal ranges + the specific 25 insertion
+    const getCubesQueue = (arr) => {
+        let set = arr.map(i => ({ q: `${i}³`, a: Math.pow(i, 3) }));
+        let title = arr.length > 10 ? `Cubes 11-21 & 25` : `Cubes 1-10`;
+        return [{ title: title, data: set }];
+    };
+
+    // Powers: Generates powers dynamically based on base and max exponent
+    const getPowersQueue = (configs, title) => {
+        let set = [];
+        configs.forEach(conf => {
+            for (let i = 1; i <= conf.max; i++) {
+                set.push({ q: `${conf.base}<sup>${i}</sup>`, a: Math.pow(conf.base, i) });
+            }
+        });
+        return [{ title: title, data: set }];
+    };
+
+    // --- 2. MENU STRUCTURE ---
+    const menuData = {
+        tables: {
+            title: "Tables (Up to 40)", icon: "✖️",
+            ranges: [
+                { label: "Tables 1 - 10", getQueue: () => getTablesQueue(1, 10) },
+                { label: "Tables 11 - 20", getQueue: () => getTablesQueue(11, 20) },
+                { label: "Tables 21 - 30", getQueue: () => getTablesQueue(21, 30) },
+                { label: "Tables 31 - 40", getQueue: () => getTablesQueue(31, 40) }
+            ]
+        },
+        squares: {
+            title: "Squares (Up to 40)", icon: "🟦",
+            ranges: [
+                { label: "Squares 1 - 10", getQueue: () => getSquaresQueue(1, 10) },
+                { label: "Squares 11 - 20", getQueue: () => getSquaresQueue(11, 20) },
+                { label: "Squares 21 - 30", getQueue: () => getSquaresQueue(21, 30) },
+                { label: "Squares 31 - 40", getQueue: () => getSquaresQueue(31, 40) }
+            ]
+        },
+        cubes: {
+            title: "Cubes (Up to 21 & 25)", icon: "🧊",
+            ranges: [
+                { label: "Cubes 1 - 10", getQueue: () => getCubesQueue(Array.from({length: 10}, (_, i) => i + 1)) },
+                { label: "Cubes 11 - 21 & 25", getQueue: () => getCubesQueue([...Array.from({length: 11}, (_, i) => i + 11), 25]) }
+            ]
+        },
+        powers: {
+            title: "Powers", icon: "⚡",
+            ranges: [
+                { label: "Base 2 (Up to 12)", getQueue: () => getPowersQueue([{base: 2, max: 12}], "Base 2") },
+                { label: "Bases 3 & 4 (Up to 6)", getQueue: () => getPowersQueue([{base: 3, max: 6}, {base: 4, max: 6}], "Bases 3 & 4") },
+                { label: "Bases 5 (to 6) & 6 (to 4)", getQueue: () => getPowersQueue([{base: 5, max: 6}, {base: 6, max: 4}], "Bases 5 & 6") }
+            ]
+        }
+    };
+
+    // --- 3. APP STATE & ROUTING ---
+    let currentScreen = 'home';
+    let activeQueue = [];
+    let currentSetIndex = 0;
+    
+    // Match State Variables
+    let selectedLeft = null;
+    let selectedRight = null;
+    let matchesFound = 0;
+    let totalMatchesNeeded = 0;
+
+    function initMenu() {
+        const homeMenu = document.getElementById('category-menu');
+        homeMenu.innerHTML = '';
+        Object.keys(menuData).forEach(key => {
+            let btn = document.createElement('button');
+            btn.className = 'menu-btn';
+            btn.innerHTML = `<span>${menuData[key].title}</span> <span class="icon">${menuData[key].icon}</span>`;
+            btn.onclick = () => openCategory(key);
+            homeMenu.appendChild(btn);
+        });
+    }
+
+    function openCategory(catKey) {
+        currentScreen = 'range';
+        document.getElementById('screen-home').classList.add('hidden');
+        document.getElementById('screen-range').classList.remove('hidden');
+        document.getElementById('back-btn').classList.remove('hidden');
+        
+        document.getElementById('range-title').innerText = menuData[catKey].title;
+        const rangeMenu = document.getElementById('range-menu');
+        rangeMenu.innerHTML = '';
+        
+        menuData[catKey].ranges.forEach(range => {
+            let btn = document.createElement('button');
+            btn.className = 'menu-btn';
+            btn.innerHTML = `<span>${range.label}</span> <span class="icon">➔</span>`;
+            btn.onclick = () => startMatchSession(range.getQueue());
+            rangeMenu.appendChild(btn);
+        });
+    }
+
+    function navigateBack() {
+        if (currentScreen === 'range') goHome();
+        else if (currentScreen === 'match') {
+            document.getElementById('screen-match').classList.add('hidden');
+            document.getElementById('screen-range').classList.remove('hidden');
+            currentScreen = 'range';
+        }
+    }
+
+    function goHome() {
+        document.getElementById('screen-range').classList.add('hidden');
+        document.getElementById('screen-match').classList.add('hidden');
+        document.getElementById('success-overlay').classList.add('hidden');
+        document.getElementById('screen-home').classList.remove('hidden');
+        document.getElementById('back-btn').classList.add('hidden');
+        currentScreen = 'home';
+    }
+
+    // --- 4. CORE MATCH LOGIC ---
+    function startMatchSession(queue) {
+        activeQueue = queue;
+        currentSetIndex = 0;
+        currentScreen = 'match';
+        
+        document.getElementById('screen-range').classList.add('hidden');
+        document.getElementById('screen-match').classList.remove('hidden');
+        
+        loadCurrentSet();
+    }
+
+    function loadCurrentSet() {
+        if (currentSetIndex >= activeQueue.length) {
+            document.getElementById('success-overlay').classList.remove('hidden');
+            return;
+        }
+
+        const set = activeQueue[currentSetIndex].data;
+        document.getElementById('match-title').innerText = activeQueue[currentSetIndex].title;
+        
+        // Progress tracker specifically for tables (e.g., "Set 1 of 10")
+        const progressEl = document.getElementById('match-progress');
+        if (activeQueue.length > 1) {
+            progressEl.innerText = `Table ${currentSetIndex + 1} of ${activeQueue.length}`;
+            progressEl.classList.remove('hidden');
+        } else {
+            progressEl.classList.add('hidden');
+        }
+
+        matchesFound = 0;
+        totalMatchesNeeded = set.length;
+        selectedLeft = null;
+        selectedRight = null;
+
+        let leftItems = [];
+        let rightItems = [];
+
+        // Assign a unique Match ID (mid) to guarantee 1-to-1 matching, bypassing duplicate answer bugs
+        set.forEach((item, index) => {
+            leftItems.push({ mid: index, html: item.q });
+            rightItems.push({ mid: index, html: item.a });
+        });
+
+        shuffle(leftItems);
+        shuffle(rightItems);
+
+        renderColumn('col-left', leftItems, 'left');
+        renderColumn('col-right', rightItems, 'right');
+    }
+
+    function renderColumn(colId, items, side) {
+        const col = document.getElementById(colId);
+        col.innerHTML = '';
+        items.forEach(item => {
+            let div = document.createElement('div');
+            div.className = 'match-item';
+            div.innerHTML = item.html;
+            div.dataset.mid = item.mid;
+            div.dataset.side = side;
+            div.onclick = () => handleItemClick(div, side);
+            col.appendChild(div);
+        });
+    }
+
+    function handleItemClick(element, side) {
+        if (element.classList.contains('matched')) return;
+
+        // Deselect logic for the same side
+        if (side === 'left') {
+            if (selectedLeft) selectedLeft.classList.remove('selected');
+            selectedLeft = element;
+        } else {
+            if (selectedRight) selectedRight.classList.remove('selected');
+            selectedRight = element;
+        }
+        
+        element.classList.add('selected');
+
+        // Check Match if both are selected
+        if (selectedLeft && selectedRight) {
+            if (selectedLeft.dataset.mid === selectedRight.dataset.mid) {
+                // CORRECT
+                selectedLeft.className = 'match-item matched';
+                selectedRight.className = 'match-item matched';
+                matchesFound++;
+                
+                selectedLeft = null;
+                selectedRight = null;
+                
+                if (matchesFound === totalMatchesNeeded) {
+                    setTimeout(() => {
+                        currentSetIndex++;
+                        loadCurrentSet();
+                    }, 600);
+                }
+            } else {
+                // WRONG
+                selectedLeft.classList.add('wrong');
+                selectedRight.classList.add('wrong');
+                
+                let lTemp = selectedLeft;
+                let rTemp = selectedRight;
+                
+                setTimeout(() => {
+                    lTemp.classList.remove('selected', 'wrong');
+                    rTemp.classList.remove('selected', 'wrong');
+                }, 400);
+                
+                selectedLeft = null;
+                selectedRight = null;
+            }
+        }
+    }
+
+    // Fisher-Yates Shuffle
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    // Initialize Menu on Load
+    window.onload = initMenu;
+</script>
+</body>
+</html>
